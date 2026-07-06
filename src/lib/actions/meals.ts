@@ -72,6 +72,36 @@ export async function createMealAction(name: string, items: MealItemInput[]) {
   return meal;
 }
 
+export async function updateMealAction(mealId: string, name: string, items: MealItemInput[]) {
+  if (!name.trim()) throw new Error("Meal name is required");
+  if (items.length === 0) throw new Error("Add at least one ingredient");
+
+  const resolvedItems = await Promise.all(
+    items.map(async (item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+      ...(await resolveItemNutrition(item)),
+    })),
+  );
+
+  const meal = await db.$transaction(async (tx) => {
+    await tx.mealItem.deleteMany({ where: { mealId } });
+    return tx.meal.update({
+      where: { id: mealId },
+      data: { name, items: { create: resolvedItems } },
+      include: { items: true },
+    });
+  });
+
+  revalidatePath("/");
+  revalidatePath("/food");
+  revalidatePath("/meals");
+  revalidatePath("/trends");
+  invalidate("meals:");
+  return meal;
+}
+
 export async function deleteMealAction(id: string) {
   await db.meal.delete({ where: { id } });
   revalidatePath("/meals");

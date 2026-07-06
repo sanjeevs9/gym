@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { createMealAction } from "@/lib/actions/meals";
+import { createMealAction, updateMealAction } from "@/lib/actions/meals";
+import { useQuickAddClose } from "@/components/quick-add-dialog";
 
 const UNITS = ["g", "ml", "oz", "cup", "tbsp", "tsp", "piece", "serving"];
 
@@ -27,6 +28,21 @@ type Row = {
   carbs: string;
   fat: string;
   fiber: string;
+};
+
+export type EditableMeal = {
+  id: string;
+  name: string;
+  items: Array<{
+    description: string;
+    quantity: number;
+    unit: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+  }>;
 };
 
 function emptyRow(id: string): Row {
@@ -43,12 +59,37 @@ function emptyRow(id: string): Row {
   };
 }
 
+function rowFromItem(id: string, item: EditableMeal["items"][number]): Row {
+  return {
+    id,
+    description: item.description,
+    quantity: String(item.quantity),
+    unit: item.unit,
+    calories: String(item.calories),
+    protein: String(item.protein),
+    carbs: String(item.carbs),
+    fat: String(item.fat),
+    fiber: String(item.fiber),
+  };
+}
+
 const parseOptional = (v: string) => (v.trim() === "" ? undefined : parseFloat(v));
 
-export function MealBuilderForm({ onCreated }: { onCreated?: () => void }) {
+export function MealBuilderForm({
+  onCreated,
+  editMeal,
+}: {
+  onCreated?: () => void;
+  editMeal?: EditableMeal;
+}) {
   const idBase = useId();
-  const [name, setName] = useState("");
-  const [rows, setRows] = useState<Row[]>([emptyRow(`${idBase}-0`)]);
+  const closeDialog = useQuickAddClose();
+  const [name, setName] = useState(editMeal?.name ?? "");
+  const [rows, setRows] = useState<Row[]>(() =>
+    editMeal && editMeal.items.length > 0
+      ? editMeal.items.map((item, i) => rowFromItem(`${idBase}-${i}`, item))
+      : [emptyRow(`${idBase}-0`)],
+  );
   const [saving, startSaving] = useTransition();
 
   function updateRow(id: string, patch: Partial<Row>) {
@@ -82,25 +123,30 @@ export function MealBuilderForm({ onCreated }: { onCreated?: () => void }) {
 
     startSaving(async () => {
       try {
-        await createMealAction(
-          name,
-          rows.map((r) => ({
-            description: r.description,
-            quantity: parseFloat(r.quantity),
-            unit: r.unit,
-            calories: parseOptional(r.calories),
-            protein: parseOptional(r.protein),
-            carbs: parseOptional(r.carbs),
-            fat: parseOptional(r.fat),
-            fiber: parseOptional(r.fiber),
-          })),
-        );
-        toast.success(`Saved "${name}"`);
-        setName("");
-        setRows([emptyRow(`${idBase}-reset`)]);
+        const items = rows.map((r) => ({
+          description: r.description,
+          quantity: parseFloat(r.quantity),
+          unit: r.unit,
+          calories: parseOptional(r.calories),
+          protein: parseOptional(r.protein),
+          carbs: parseOptional(r.carbs),
+          fat: parseOptional(r.fat),
+          fiber: parseOptional(r.fiber),
+        }));
+
+        if (editMeal) {
+          await updateMealAction(editMeal.id, name, items);
+          toast.success(`Updated "${name}"`);
+        } else {
+          await createMealAction(name, items);
+          toast.success(`Saved "${name}"`);
+          setName("");
+          setRows([emptyRow(`${idBase}-reset`)]);
+        }
         onCreated?.();
+        closeDialog();
       } catch {
-        toast.error("Couldn't save meal");
+        toast.error(editMeal ? "Couldn't update meal" : "Couldn't save meal");
       }
     });
   }
@@ -211,7 +257,7 @@ export function MealBuilderForm({ onCreated }: { onCreated?: () => void }) {
 
       <Button onClick={handleSave} disabled={saving} className="w-full">
         {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-        Save meal
+        {editMeal ? "Update meal" : "Save meal"}
       </Button>
     </div>
   );
