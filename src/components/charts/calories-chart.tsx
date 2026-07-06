@@ -3,7 +3,6 @@
 import {
   ComposedChart,
   Bar,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -60,14 +59,6 @@ export function CaloriesChart({ data }: { data: TrendPoint[] }) {
           fill={CHART_COLORS.caloriesBurned}
           radius={[4, 4, 0, 0]}
           maxBarSize={18}
-        />
-        <Line
-          dataKey="net"
-          name="Net"
-          stroke={CHART_COLORS.net}
-          strokeWidth={2}
-          dot={{ r: 3, strokeWidth: 2, stroke: CHART_INK.surface }}
-          activeDot={{ r: 5 }}
         />
       </ComposedChart>
     </ResponsiveContainer>

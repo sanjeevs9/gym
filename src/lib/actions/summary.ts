@@ -11,7 +11,6 @@ export type DailySummary = {
   fat: number;
   fiber: number;
   caloriesBurned: number;
-  net: number;
   weightKg: number | null;
 };
 
@@ -43,7 +42,6 @@ export async function getDailySummary(date: Date = new Date()): Promise<DailySum
     return {
       ...totals,
       caloriesBurned,
-      net: totals.calories - caloriesBurned,
       weightKg: weightEntry?.weightKg ?? null,
     };
   });
@@ -58,7 +56,6 @@ export type TrendPoint = {
   fat: number;
   fiber: number;
   caloriesBurned: number;
-  net: number;
   weightKg: number | null;
 };
 
@@ -87,7 +84,6 @@ export async function getTrends(days: number): Promise<TrendPoint[]> {
         fat: 0,
         fiber: 0,
         caloriesBurned: 0,
-        net: 0,
         weightKg: null,
       });
     }
@@ -116,8 +112,6 @@ export async function getTrends(days: number): Promise<TrendPoint[]> {
       if (point) point.weightKg = e.weightKg;
     }
 
-    const points = Array.from(byDay.values());
-    for (const p of points) p.net = p.calories - p.caloriesBurned;
-    return points;
+    return Array.from(byDay.values());
   });
 }

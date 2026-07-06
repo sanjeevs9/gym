@@ -7,7 +7,6 @@ export const BRAND = "#4a3aa7";
 export const CHART_COLORS = {
   caloriesIn: "#2a78d6",
   caloriesBurned: "#eb6834",
-  net: "#4a3aa7",
   protein: "#1baf7a",
   carbs: "#008300",
   fat: "#eda100",

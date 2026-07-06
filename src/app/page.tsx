@@ -131,7 +131,7 @@ export default async function TodayPage({
           <p className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             Statistics <span className="normal-case">this week</span>
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <AnalyticsCard
               label="Calories in"
               value={Math.round(summary.calories)}
@@ -157,15 +157,6 @@ export default async function TodayPage({
               icon={Beef}
               accent={CHART_COLORS.protein}
               sparkline={trends.map((t) => t.protein)}
-              sparklineCaption="This week"
-            />
-            <AnalyticsCard
-              label="Net calories"
-              value={Math.round(summary.net)}
-              unit="kcal"
-              icon={Flame}
-              accent={CHART_COLORS.net}
-              sparkline={trends.map((t) => Math.max(0, t.net))}
               sparklineCaption="This week"
             />
           </div>

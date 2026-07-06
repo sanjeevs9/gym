@@ -23,7 +23,6 @@ export function TrendsTable({ data }: { data: TrendPoint[] }) {
             <TableHead className="text-right">Fat</TableHead>
             <TableHead className="text-right">Fiber</TableHead>
             <TableHead className="text-right">Burned</TableHead>
-            <TableHead className="text-right">Net</TableHead>
             <TableHead className="text-right">Weight</TableHead>
           </TableRow>
         </TableHeader>
@@ -39,7 +38,6 @@ export function TrendsTable({ data }: { data: TrendPoint[] }) {
               <TableCell className="text-right tabular-nums">
                 {Math.round(row.caloriesBurned)}
               </TableCell>
-              <TableCell className="text-right tabular-nums">{Math.round(row.net)}</TableCell>
               <TableCell className="text-right tabular-nums">
                 {row.weightKg ? `${row.weightKg.toFixed(1)} kg` : "—"}
               </TableCell>

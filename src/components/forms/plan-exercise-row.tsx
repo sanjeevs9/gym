@@ -12,6 +12,8 @@ import {
   logExerciseAction,
   type StrengthSet,
 } from "@/lib/actions/exercise";
+import { useSelectedDateKey } from "@/components/selected-date-context";
+import { combineDayKeyWithNow, relativeDayLabel, parseDayKey, todayKey } from "@/lib/date";
 
 export function PlanExerciseRow({
   name,
@@ -26,6 +28,8 @@ export function PlanExerciseRow({
   const [open, setOpen] = useState(false);
   const [sets, setSets] = useState<StrengthSet[]>([{ reps: 10, weightKg: isBodyweight ? 0 : 20 }]);
   const [saving, startSaving] = useTransition();
+  const dateKey = useSelectedDateKey();
+  const dayLabel = relativeDayLabel(parseDayKey(dateKey)).toLowerCase();
 
   function updateSet(i: number, patch: Partial<StrengthSet>) {
     setSets((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
@@ -41,6 +45,7 @@ export function PlanExerciseRow({
           detailsJson: JSON.stringify({ exerciseName: name, sets }),
           caloriesBurned: estimate.caloriesBurned,
           estimatedByAi: true,
+          loggedAt: dateKey === todayKey() ? undefined : combineDayKeyWithNow(dateKey),
         });
         toast.success(`Logged ${name} — ${Math.round(estimate.caloriesBurned)} kcal burned`);
         setOpen(false);
@@ -113,7 +118,7 @@ export function PlanExerciseRow({
             </Button>
             <Button size="sm" onClick={handleLog} disabled={saving} className="flex-1">
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Log it for today
+              Log it for {dayLabel}
             </Button>
           </div>
         </div>
