@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { estimateNutrition } from "@/lib/ai";
+import { cached, invalidate } from "@/lib/query-cache";
 
 export type LogFoodInput = {
   description: string;
@@ -90,6 +91,7 @@ export async function logFoodAction(input: LogFoodInput): Promise<LogFoodResult>
   revalidatePath("/");
   revalidatePath("/food");
   revalidatePath("/trends");
+  invalidate("food:", "summary:");
   return { ...entry, aiEstimated: nutrition.aiEstimated };
 }
 
@@ -98,11 +100,15 @@ export async function deleteFoodEntryAction(id: string) {
   revalidatePath("/");
   revalidatePath("/food");
   revalidatePath("/trends");
+  invalidate("food:", "summary:");
 }
 
 export async function getFoodEntriesInRange(gte: Date, lte: Date) {
-  return db.foodEntry.findMany({
-    where: { loggedAt: { gte, lte } },
-    orderBy: { loggedAt: "desc" },
-  });
+  const key = `food:range:${gte.toISOString()}:${lte.toISOString()}`;
+  return cached(key, () =>
+    db.foodEntry.findMany({
+      where: { loggedAt: { gte, lte } },
+      orderBy: { loggedAt: "desc" },
+    }),
+  );
 }

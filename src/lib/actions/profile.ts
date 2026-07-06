@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { cached, invalidate } from "@/lib/query-cache";
 
 export async function getProfileAction() {
-  return db.profile.findUnique({ where: { id: "profile" } });
+  return cached("profile:singleton", () => db.profile.findUnique({ where: { id: "profile" } }));
 }
 
 export type UpsertProfileInput = {
@@ -20,5 +21,6 @@ export async function upsertProfileAction(input: UpsertProfileInput) {
   });
   revalidatePath("/");
   revalidatePath("/profile");
+  invalidate("profile:");
   return profile;
 }

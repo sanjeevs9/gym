@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { estimateNutrition } from "@/lib/ai";
+import { cached, invalidate } from "@/lib/query-cache";
 
 export type MealItemInput = {
   description: string;
@@ -67,19 +68,23 @@ export async function createMealAction(name: string, items: MealItemInput[]) {
   revalidatePath("/food");
   revalidatePath("/meals");
   revalidatePath("/trends");
+  invalidate("meals:");
   return meal;
 }
 
 export async function deleteMealAction(id: string) {
   await db.meal.delete({ where: { id } });
   revalidatePath("/meals");
+  invalidate("meals:");
 }
 
 export async function getMealsAction() {
-  return db.meal.findMany({
-    include: { items: true },
-    orderBy: { createdAt: "desc" },
-  });
+  return cached("meals:all", () =>
+    db.meal.findMany({
+      include: { items: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  );
 }
 
 export async function logMealAction(mealId: string, loggedAt?: Date) {
@@ -106,4 +111,5 @@ export async function logMealAction(mealId: string, loggedAt?: Date) {
   revalidatePath("/");
   revalidatePath("/food");
   revalidatePath("/trends");
+  invalidate("food:", "summary:");
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { estimateExerciseCalories } from "@/lib/ai";
 import { getLatestWeightKg } from "@/lib/actions/weight";
+import { cached, invalidate } from "@/lib/query-cache";
 import type { ExerciseType } from "@/generated/prisma/client";
 
 export type StrengthSet = { reps: number; weightKg: number };
@@ -59,6 +60,7 @@ export async function logExerciseAction(input: LogExerciseInput) {
   revalidatePath("/");
   revalidatePath("/exercise");
   revalidatePath("/trends");
+  invalidate("exercise:", "summary:");
   return entry;
 }
 
@@ -67,11 +69,15 @@ export async function deleteExerciseEntryAction(id: string) {
   revalidatePath("/");
   revalidatePath("/exercise");
   revalidatePath("/trends");
+  invalidate("exercise:", "summary:");
 }
 
 export async function getExerciseEntriesInRange(gte: Date, lte: Date) {
-  return db.exerciseEntry.findMany({
-    where: { loggedAt: { gte, lte } },
-    orderBy: { loggedAt: "desc" },
-  });
+  const key = `exercise:range:${gte.toISOString()}:${lte.toISOString()}`;
+  return cached(key, () =>
+    db.exerciseEntry.findMany({
+      where: { loggedAt: { gte, lte } },
+      orderBy: { loggedAt: "desc" },
+    }),
+  );
 }
