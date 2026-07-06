@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExerciseType {
+  CARDIO
+  STRENGTH
+  STEPS
+}
+
+// A single logged food item (either logged directly, or as part of logging a saved Meal).
+model FoodEntry {
+  id          String    @id @default(cuid())
+  description String
+  quantity    Float
+  unit        String
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  fiber       Float
+  mealId      String?
+  meal        Meal?     @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  loggedAt    DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([loggedAt])
+}
+
+// A reusable template of foods the user eats often (e.g. "Post-workout shake").
+model Meal {
+  id        String      @id @default(cuid())
+  name      String
+  items     MealItem[]
+  entries   FoodEntry[]
+  createdAt DateTime    @default(now())
+}
+
+// One ingredient line inside a saved Meal template.
+model MealItem {
+  id          String @id @default(cuid())
+  mealId      String
+  meal        Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float
+  unit        String
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  fiber       Float
+}
+
+// Cardio / strength / steps activity. detailsJson holds the type-specific shape
+// (sets/reps/weight for strength, duration for cardio, step count for steps).
+model ExerciseEntry {
+  id             String       @id @default(cuid())
+  type           ExerciseType
+  description    String
+  detailsJson    String?
+  caloriesBurned Float
+  estimatedByAi  Boolean      @default(false)
+  loggedAt       DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+
+  @@index([loggedAt])
+}
+
+model WeightEntry {
+  id        String   @id @default(cuid())
+  weightKg  Float
+  loggedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([loggedAt])
+}
+
+// Singleton row (id always "profile") holding personal stats used to derive
+// BMI and other metrics on the dashboard. Body fat % is self-reported (e.g.
+// from a smart scale), not formula-estimated.
+model Profile {
+  id               String   @id @default("profile")
+  heightCm         Float?
+  bodyFatPercent   Float?
+  updatedAt        DateTime @updatedAt
+}
