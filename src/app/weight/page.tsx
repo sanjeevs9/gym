@@ -6,8 +6,7 @@ import { SelectedDateProvider } from "@/components/selected-date-context";
 import { WeightLogForm } from "@/components/forms/weight-log-form";
 import { DeleteIconButton } from "@/components/delete-icon-button";
 import { getWeightEntriesInRange, deleteWeightEntryAction } from "@/lib/actions/weight";
-import { lastNDaysRange, isValidDayKey, todayKey } from "@/lib/date";
-import { format } from "date-fns";
+import { lastNDaysRange, isValidDayKey, todayKey, formatInAppTz } from "@/lib/date";
 
 export default async function WeightPage({
   searchParams,
@@ -56,7 +55,7 @@ export default async function WeightPage({
                     <div>
                       <p className="font-medium">{entry.weightKg.toFixed(1)} kg</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(entry.loggedAt, "EEE, MMM d 'at' h:mm a")}
+                        {formatInAppTz(entry.loggedAt, "EEE, MMM d 'at' h:mm a")}
                         {delta !== null && (
                           <span
                             className={delta > 0 ? "text-[#e34948]" : delta < 0 ? "text-[#0ca30c]" : ""}

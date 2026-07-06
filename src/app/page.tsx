@@ -24,9 +24,15 @@ import { DeleteIconButton } from "@/components/delete-icon-button";
 import { getDailySummary, getTrends } from "@/lib/actions/summary";
 import { getFoodEntriesInRange, deleteFoodEntryAction } from "@/lib/actions/food";
 import { getExerciseEntriesInRange, deleteExerciseEntryAction } from "@/lib/actions/exercise";
-import { dayRange, isValidDayKey, parseDayKey, relativeDayLabel, todayKey } from "@/lib/date";
+import {
+  dayRange,
+  isValidDayKey,
+  parseDayKey,
+  relativeDayLabel,
+  todayKey,
+  formatInAppTz,
+} from "@/lib/date";
 import { CHART_COLORS } from "@/lib/chart-colors";
-import { format } from "date-fns";
 
 export default async function TodayPage({
   searchParams,
@@ -53,7 +59,9 @@ export default async function TodayPage({
             <h1 className="text-xl font-semibold tracking-tight">
               {relativeDayLabel(selectedDate)}
             </h1>
-            <p className="text-sm text-muted-foreground">{format(selectedDate, "EEEE, MMMM d")}</p>
+            <p className="text-sm text-muted-foreground">
+              {formatInAppTz(selectedDate, "EEEE, MMMM d")}
+            </p>
           </div>
           <DateNav date={dateKey} basePath="/" />
         </div>

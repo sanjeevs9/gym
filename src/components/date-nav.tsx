@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { shiftDayKey, todayKey, parseDayKey, relativeDayLabel } from "@/lib/date";
-import { format } from "date-fns";
+import { shiftDayKey, todayKey, parseDayKey, relativeDayLabel, formatInAppTz } from "@/lib/date";
 
 export function DateNav({ date, basePath }: { date: string; basePath: string }) {
   const router = useRouter();
@@ -31,7 +30,7 @@ export function DateNav({ date, basePath }: { date: string; basePath: string }) 
 
       <div className="relative flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm font-medium">
         <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-        <span>{showFullDate ? format(selected, "MMM d") : label}</span>
+        <span>{showFullDate ? formatInAppTz(selected, "MMM d") : label}</span>
         <input
           type="date"
           value={date}
