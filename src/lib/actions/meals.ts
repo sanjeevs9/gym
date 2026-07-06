@@ -44,6 +44,33 @@ async function resolveItemNutrition(item: MealItemInput) {
   };
 }
 
+// Read-only: resolves each ingredient's macros (AI-filling any blanks) and
+// the running total, without persisting anything — lets the user check
+// numbers before committing to "Save meal".
+export async function previewMealNutritionAction(items: MealItemInput[]) {
+  const resolvedItems = await Promise.all(
+    items.map(async (item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+      ...(await resolveItemNutrition(item)),
+    })),
+  );
+
+  const total = resolvedItems.reduce(
+    (acc, item) => ({
+      calories: acc.calories + item.calories,
+      protein: acc.protein + item.protein,
+      carbs: acc.carbs + item.carbs,
+      fat: acc.fat + item.fat,
+      fiber: acc.fiber + item.fiber,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  );
+
+  return { items: resolvedItems, total };
+}
+
 export async function createMealAction(name: string, items: MealItemInput[]) {
   if (!name.trim()) throw new Error("Meal name is required");
   if (items.length === 0) throw new Error("Add at least one ingredient");

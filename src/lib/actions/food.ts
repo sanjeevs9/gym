@@ -103,12 +103,23 @@ export async function deleteFoodEntryAction(id: string) {
   invalidate("food:", "summary:");
 }
 
+// Deletes every ingredient entry from one meal-logging event at once, so
+// removing a grouped "meal" row in the UI removes all of it in one action.
+export async function deleteFoodEntryGroupAction(ids: string[]) {
+  await db.foodEntry.deleteMany({ where: { id: { in: ids } } });
+  revalidatePath("/");
+  revalidatePath("/food");
+  revalidatePath("/trends");
+  invalidate("food:", "summary:");
+}
+
 export async function getFoodEntriesInRange(gte: Date, lte: Date) {
   const key = `food:range:${gte.toISOString()}:${lte.toISOString()}`;
   return cached(key, () =>
     db.foodEntry.findMany({
       where: { loggedAt: { gte, lte } },
       orderBy: { loggedAt: "desc" },
+      include: { meal: { select: { name: true } } },
     }),
   );
 }

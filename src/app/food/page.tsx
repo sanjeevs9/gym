@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateNav } from "@/components/date-nav";
 import { SelectedDateProvider } from "@/components/selected-date-context";
 import { FoodLogForm } from "@/components/forms/food-log-form";
-import { DeleteIconButton } from "@/components/delete-icon-button";
-import { getFoodEntriesInRange, deleteFoodEntryAction } from "@/lib/actions/food";
+import { FoodEntryList } from "@/components/food-entry-list";
+import { getFoodEntriesInRange } from "@/lib/actions/food";
 import { dayRange, isValidDayKey, parseDayKey, relativeDayLabel, todayKey } from "@/lib/date";
 
 export default async function FoodPage({
@@ -44,31 +44,7 @@ export default async function FoodPage({
 
         <section className="space-y-2">
           <h2 className="text-sm font-semibold text-muted-foreground">Logged {dayLabel}</h2>
-          {entries.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-              Nothing logged {dayLabel}.
-            </p>
-          ) : (
-            <ul className="space-y-1.5">
-              {entries.map((entry) => (
-                <li
-                  key={entry.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{entry.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {entry.quantity}
-                      {entry.unit} · {Math.round(entry.calories)} kcal ·{" "}
-                      {Math.round(entry.protein)}g protein · {Math.round(entry.carbs)}g carbs ·{" "}
-                      {Math.round(entry.fat)}g fat · {Math.round(entry.fiber)}g fiber
-                    </p>
-                  </div>
-                  <DeleteIconButton id={entry.id} action={deleteFoodEntryAction} />
-                </li>
-              ))}
-            </ul>
-          )}
+          <FoodEntryList entries={entries} emptyText={`Nothing logged ${dayLabel}.`} showFullMacros />
         </section>
       </div>
     </SelectedDateProvider>

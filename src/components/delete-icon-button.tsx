@@ -5,12 +5,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2, X } from "lucide-react";
 
-export function DeleteIconButton({
+export function DeleteIconButton<T>({
   id,
   action,
 }: {
-  id: string;
-  action: (id: string) => Promise<void>;
+  id: T;
+  action: (id: T) => Promise<void>;
 }) {
   const [pending, startTransition] = useTransition();
 

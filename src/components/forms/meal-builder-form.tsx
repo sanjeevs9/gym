@@ -12,8 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2 } from "lucide-react";
-import { createMealAction, updateMealAction } from "@/lib/actions/meals";
+import { Loader2, Plus, Trash2, Eye } from "lucide-react";
+import { createMealAction, updateMealAction, previewMealNutritionAction } from "@/lib/actions/meals";
 import { useQuickAddClose } from "@/components/quick-add-dialog";
 
 const UNITS = ["g", "ml", "oz", "cup", "tbsp", "tsp", "piece", "serving"];
@@ -91,17 +91,64 @@ export function MealBuilderForm({
       : [emptyRow(`${idBase}-0`)],
   );
   const [saving, startSaving] = useTransition();
+  const [checking, startChecking] = useTransition();
+  const [preview, setPreview] = useState<Awaited<
+    ReturnType<typeof previewMealNutritionAction>
+  > | null>(null);
 
   function updateRow(id: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    setPreview(null);
   }
 
   function addRow() {
     setRows((prev) => [...prev, emptyRow(`${idBase}-${prev.length}`)]);
+    setPreview(null);
   }
 
   function removeRow(id: string) {
     setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+    setPreview(null);
+  }
+
+  function validateRows() {
+    for (const row of rows) {
+      if (!row.description.trim()) {
+        toast.error("Every ingredient needs a name");
+        return false;
+      }
+      const qty = parseFloat(row.quantity);
+      if (!qty || qty <= 0) {
+        toast.error(`Enter a valid quantity for ${row.description}`);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function itemsPayload() {
+    return rows.map((r) => ({
+      description: r.description,
+      quantity: parseFloat(r.quantity),
+      unit: r.unit,
+      calories: parseOptional(r.calories),
+      protein: parseOptional(r.protein),
+      carbs: parseOptional(r.carbs),
+      fat: parseOptional(r.fat),
+      fiber: parseOptional(r.fiber),
+    }));
+  }
+
+  function handleCheck() {
+    if (!validateRows()) return;
+    startChecking(async () => {
+      try {
+        const result = await previewMealNutritionAction(itemsPayload());
+        setPreview(result);
+      } catch {
+        toast.error("Couldn't check nutrition");
+      }
+    });
   }
 
   function handleSave() {
@@ -109,30 +156,11 @@ export function MealBuilderForm({
       toast.error("Give this meal a name");
       return;
     }
-    for (const row of rows) {
-      if (!row.description.trim()) {
-        toast.error("Every ingredient needs a name");
-        return;
-      }
-      const qty = parseFloat(row.quantity);
-      if (!qty || qty <= 0) {
-        toast.error(`Enter a valid quantity for ${row.description}`);
-        return;
-      }
-    }
+    if (!validateRows()) return;
 
     startSaving(async () => {
       try {
-        const items = rows.map((r) => ({
-          description: r.description,
-          quantity: parseFloat(r.quantity),
-          unit: r.unit,
-          calories: parseOptional(r.calories),
-          protein: parseOptional(r.protein),
-          carbs: parseOptional(r.carbs),
-          fat: parseOptional(r.fat),
-          fiber: parseOptional(r.fiber),
-        }));
+        const items = itemsPayload();
 
         if (editMeal) {
           await updateMealAction(editMeal.id, name, items);
@@ -143,6 +171,7 @@ export function MealBuilderForm({
           setName("");
           setRows([emptyRow(`${idBase}-reset`)]);
         }
+        setPreview(null);
         onCreated?.();
         closeDialog();
       } catch {
@@ -153,15 +182,56 @@ export function MealBuilderForm({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="meal-name">Meal name</Label>
-        <Input
-          id="meal-name"
-          placeholder="e.g. Post-workout shake"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 space-y-1.5">
+          <Label htmlFor="meal-name">Meal name</Label>
+          <Input
+            id="meal-name"
+            placeholder="e.g. Post-workout shake"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setPreview(null);
+            }}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCheck}
+          disabled={checking}
+          className="mt-6"
+        >
+          {checking ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Eye className="h-3.5 w-3.5" />
+          )}
+          Check
+        </Button>
       </div>
+
+      {preview && (
+        <div className="space-y-2 rounded-lg bg-secondary/40 p-3 text-xs">
+          <p className="font-semibold text-muted-foreground">Preview — not saved yet</p>
+          <ul className="space-y-1">
+            {preview.items.map((item, i) => (
+              <li key={i} className="text-muted-foreground">
+                <span className="font-medium text-foreground">{item.description}</span> (
+                {item.quantity}
+                {item.unit}) — {Math.round(item.calories)} kcal · {Math.round(item.protein)}g
+                protein · {Math.round(item.carbs)}g carbs · {Math.round(item.fat)}g fat ·{" "}
+                {Math.round(item.fiber)}g fiber
+              </li>
+            ))}
+          </ul>
+          <div className="border-t border-border pt-2 text-sm font-medium text-foreground">
+            Total: {Math.round(preview.total.calories)} kcal · {Math.round(preview.total.protein)}
+            g protein · {Math.round(preview.total.carbs)}g carbs · {Math.round(preview.total.fat)}g
+            fat · {Math.round(preview.total.fiber)}g fiber
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         {rows.map((row) => (

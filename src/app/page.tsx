@@ -21,8 +21,9 @@ import { FoodLogForm } from "@/components/forms/food-log-form";
 import { ExerciseLogForm } from "@/components/forms/exercise-log-form";
 import { WeightLogForm } from "@/components/forms/weight-log-form";
 import { DeleteIconButton } from "@/components/delete-icon-button";
+import { FoodEntryList } from "@/components/food-entry-list";
 import { getDailySummary, getTrends } from "@/lib/actions/summary";
-import { getFoodEntriesInRange, deleteFoodEntryAction } from "@/lib/actions/food";
+import { getFoodEntriesInRange } from "@/lib/actions/food";
 import { getExerciseEntriesInRange, deleteExerciseEntryAction } from "@/lib/actions/exercise";
 import {
   dayRange,
@@ -179,27 +180,7 @@ export default async function TodayPage({
         <div className="grid gap-4 sm:grid-cols-2">
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-muted-foreground">Food</h2>
-            {foodEntries.length === 0 ? (
-              <EmptyState text="Nothing logged yet." />
-            ) : (
-              <ul className="space-y-1.5">
-                {foodEntries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="flex items-center justify-between gap-2 rounded-xl bg-card px-3 py-2 text-sm shadow-sm ring-1 ring-foreground/5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{entry.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {entry.quantity}
-                        {entry.unit} · {Math.round(entry.calories)} kcal
-                      </p>
-                    </div>
-                    <DeleteIconButton id={entry.id} action={deleteFoodEntryAction} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            <FoodEntryList entries={foodEntries} emptyText="Nothing logged yet." />
           </section>
 
           <section className="space-y-2">
