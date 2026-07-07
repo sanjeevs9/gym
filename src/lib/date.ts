@@ -1,4 +1,4 @@
-import { addDays } from "date-fns";
+import { addDays, differenceInCalendarDays } from "date-fns";
 import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 
 // This app has one user, in India — always compute "today", day boundaries,
@@ -83,4 +83,8 @@ export function lastNDaysRange(days: number) {
 
 export function labelForDay(date: Date): string {
   return formatInAppTz(date, "MMM d");
+}
+
+export function daysAgoFromToday(date: Date): number {
+  return differenceInCalendarDays(startOfDayKey(todayKey()), startOfDayKey(dayKey(date)));
 }

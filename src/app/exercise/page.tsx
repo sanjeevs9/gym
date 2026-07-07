@@ -1,11 +1,18 @@
 export const dynamic = "force-dynamic";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateNav } from "@/components/date-nav";
 import { SelectedDateProvider } from "@/components/selected-date-context";
 import { ExerciseLogForm } from "@/components/forms/exercise-log-form";
-import { DeleteIconButton } from "@/components/delete-icon-button";
-import { getExerciseEntriesInRange, deleteExerciseEntryAction } from "@/lib/actions/exercise";
+import { ExerciseEntryList } from "@/components/exercise-entry-list";
+import { BodyDiagram } from "@/components/body-diagram";
+import { ExerciseProgress } from "@/components/exercise-progress";
+import {
+  getExerciseEntriesInRange,
+  getMuscleGroupRecencyAction,
+  getLoggedStrengthExerciseNamesAction,
+} from "@/lib/actions/exercise";
 import { dayRange, isValidDayKey, parseDayKey, relativeDayLabel, todayKey } from "@/lib/date";
 
 export default async function ExercisePage({
@@ -17,58 +24,58 @@ export default async function ExercisePage({
   const dateKey = isValidDayKey(params.date) ? params.date : todayKey();
   const selectedDate = parseDayKey(dateKey);
   const range = dayRange(selectedDate);
-  const entries = await getExerciseEntriesInRange(range.gte, range.lte);
+  const [entries, muscleRecency, exerciseNames] = await Promise.all([
+    getExerciseEntriesInRange(range.gte, range.lte),
+    getMuscleGroupRecencyAction(),
+    getLoggedStrengthExerciseNamesAction(),
+  ]);
   const dayLabel = relativeDayLabel(selectedDate).toLowerCase();
 
   return (
     <SelectedDateProvider date={dateKey}>
       <div className="mx-auto max-w-2xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Log exercise</h1>
-            <p className="text-sm text-muted-foreground">
-              Cardio, strength training, or steps — AI estimates the calories burned.
-            </p>
-          </div>
-          <DateNav date={dateKey} basePath="/exercise" />
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Exercise</h1>
+          <p className="text-sm text-muted-foreground">
+            Log activity, see which muscles you&apos;ve trained, and track your progress.
+          </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">New activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ExerciseLogForm />
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="log">
+          <TabsList>
+            <TabsTrigger value="log">Log</TabsTrigger>
+            <TabsTrigger value="muscles">Muscles</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
+          </TabsList>
 
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">Activity {dayLabel}</h2>
-          {entries.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-              No activity logged {dayLabel}.
-            </p>
-          ) : (
-            <ul className="space-y-1.5">
-              {entries.map((entry) => (
-                <li
-                  key={entry.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{entry.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {entry.type.charAt(0) + entry.type.slice(1).toLowerCase()} ·{" "}
-                      {Math.round(entry.caloriesBurned)} kcal burned
-                      {entry.estimatedByAi ? " · AI estimate" : ""}
-                    </p>
-                  </div>
-                  <DeleteIconButton id={entry.id} action={deleteExerciseEntryAction} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          <TabsContent value="log" className="space-y-6 pt-4">
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <DateNav date={dateKey} basePath="/exercise" />
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">New activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ExerciseLogForm />
+              </CardContent>
+            </Card>
+
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">Activity {dayLabel}</h2>
+              <ExerciseEntryList entries={entries} emptyText={`No activity logged ${dayLabel}.`} />
+            </section>
+          </TabsContent>
+
+          <TabsContent value="muscles" className="pt-4">
+            <BodyDiagram recency={muscleRecency} />
+          </TabsContent>
+
+          <TabsContent value="progress" className="pt-4">
+            <ExerciseProgress exerciseNames={exerciseNames} />
+          </TabsContent>
+        </Tabs>
       </div>
     </SelectedDateProvider>
   );

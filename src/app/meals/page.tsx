@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MealBuilderForm } from "@/components/forms/meal-builder-form";
 import { EditMealDialog } from "@/components/forms/edit-meal-dialog";
+import { DuplicateMealDialog } from "@/components/forms/duplicate-meal-dialog";
 import { LogMealButton } from "@/components/forms/log-meal-button";
 import { DeleteIconButton } from "@/components/delete-icon-button";
 import { getMealsAction, deleteMealAction } from "@/lib/actions/meals";
@@ -48,6 +49,20 @@ export default async function MealsPage() {
                 },
                 { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
               );
+              const editableMeal = {
+                id: meal.id,
+                name: meal.name,
+                items: meal.items.map((i) => ({
+                  description: i.description,
+                  quantity: i.quantity,
+                  unit: i.unit,
+                  calories: i.calories,
+                  protein: i.protein,
+                  carbs: i.carbs,
+                  fat: i.fat,
+                  fiber: i.fiber,
+                })),
+              };
 
               return (
                 <div key={meal.id} className="space-y-3 rounded-xl border border-border bg-card p-4">
@@ -59,22 +74,8 @@ export default async function MealsPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <EditMealDialog
-                        meal={{
-                          id: meal.id,
-                          name: meal.name,
-                          items: meal.items.map((i) => ({
-                            description: i.description,
-                            quantity: i.quantity,
-                            unit: i.unit,
-                            calories: i.calories,
-                            protein: i.protein,
-                            carbs: i.carbs,
-                            fat: i.fat,
-                            fiber: i.fiber,
-                          })),
-                        }}
-                      />
+                      <DuplicateMealDialog meal={editableMeal} />
+                      <EditMealDialog meal={editableMeal} />
                       <DeleteIconButton id={meal.id} action={deleteMealAction} />
                     </div>
                   </div>

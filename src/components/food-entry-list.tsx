@@ -43,7 +43,9 @@ function macroLine(
   macros: { calories: number; protein: number; carbs: number; fat: number; fiber: number },
   showFullMacros: boolean,
 ) {
-  if (!showFullMacros) return `${Math.round(macros.calories)} kcal`;
+  if (!showFullMacros) {
+    return `${Math.round(macros.calories)} kcal · ${Math.round(macros.protein)}g protein`;
+  }
   return `${Math.round(macros.calories)} kcal · ${Math.round(macros.protein)}g protein · ${Math.round(
     macros.carbs,
   )}g carbs · ${Math.round(macros.fat)}g fat · ${Math.round(macros.fiber)}g fiber`;

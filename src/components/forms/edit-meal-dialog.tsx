@@ -13,7 +13,7 @@ export function EditMealDialog({ meal }: { meal: EditableMeal }) {
       variant="outline"
       className="h-7 rounded-md px-2 text-xs"
     >
-      <MealBuilderForm editMeal={meal} />
+      <MealBuilderForm editMealId={meal.id} initialData={{ name: meal.name, items: meal.items }} />
     </QuickAddDialog>
   );
 }

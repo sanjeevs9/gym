@@ -30,19 +30,26 @@ type Row = {
   fiber: string;
 };
 
+export type MealItemSnapshot = {
+  description: string;
+  quantity: number;
+  unit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+};
+
 export type EditableMeal = {
   id: string;
   name: string;
-  items: Array<{
-    description: string;
-    quantity: number;
-    unit: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-  }>;
+  items: MealItemSnapshot[];
+};
+
+export type MealPrefill = {
+  name: string;
+  items: MealItemSnapshot[];
 };
 
 function emptyRow(id: string): Row {
@@ -59,7 +66,7 @@ function emptyRow(id: string): Row {
   };
 }
 
-function rowFromItem(id: string, item: EditableMeal["items"][number]): Row {
+function rowFromItem(id: string, item: MealItemSnapshot): Row {
   return {
     id,
     description: item.description,
@@ -77,17 +84,19 @@ const parseOptional = (v: string) => (v.trim() === "" ? undefined : parseFloat(v
 
 export function MealBuilderForm({
   onCreated,
-  editMeal,
+  initialData,
+  editMealId,
 }: {
   onCreated?: () => void;
-  editMeal?: EditableMeal;
+  initialData?: MealPrefill;
+  editMealId?: string;
 }) {
   const idBase = useId();
   const closeDialog = useQuickAddClose();
-  const [name, setName] = useState(editMeal?.name ?? "");
+  const [name, setName] = useState(initialData?.name ?? "");
   const [rows, setRows] = useState<Row[]>(() =>
-    editMeal && editMeal.items.length > 0
-      ? editMeal.items.map((item, i) => rowFromItem(`${idBase}-${i}`, item))
+    initialData && initialData.items.length > 0
+      ? initialData.items.map((item, i) => rowFromItem(`${idBase}-${i}`, item))
       : [emptyRow(`${idBase}-0`)],
   );
   const [saving, startSaving] = useTransition();
@@ -162,8 +171,8 @@ export function MealBuilderForm({
       try {
         const items = itemsPayload();
 
-        if (editMeal) {
-          await updateMealAction(editMeal.id, name, items);
+        if (editMealId) {
+          await updateMealAction(editMealId, name, items);
           toast.success(`Updated "${name}"`);
         } else {
           await createMealAction(name, items);
@@ -175,7 +184,7 @@ export function MealBuilderForm({
         onCreated?.();
         closeDialog();
       } catch {
-        toast.error(editMeal ? "Couldn't update meal" : "Couldn't save meal");
+        toast.error(editMealId ? "Couldn't update meal" : "Couldn't save meal");
       }
     });
   }
@@ -327,7 +336,7 @@ export function MealBuilderForm({
 
       <Button onClick={handleSave} disabled={saving} className="w-full">
         {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-        {editMeal ? "Update meal" : "Save meal"}
+        {editMealId ? "Update meal" : "Save meal"}
       </Button>
     </div>
   );

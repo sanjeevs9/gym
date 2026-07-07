@@ -6,7 +6,6 @@ import {
   UtensilsCrossed,
   Dumbbell,
   Scale,
-  PlusCircle,
   Beef,
   Wheat,
   Droplet,
@@ -20,11 +19,11 @@ import { SelectedDateProvider } from "@/components/selected-date-context";
 import { FoodLogForm } from "@/components/forms/food-log-form";
 import { ExerciseLogForm } from "@/components/forms/exercise-log-form";
 import { WeightLogForm } from "@/components/forms/weight-log-form";
-import { DeleteIconButton } from "@/components/delete-icon-button";
 import { FoodEntryList } from "@/components/food-entry-list";
+import { ExerciseEntryList } from "@/components/exercise-entry-list";
 import { getDailySummary, getTrends } from "@/lib/actions/summary";
 import { getFoodEntriesInRange } from "@/lib/actions/food";
-import { getExerciseEntriesInRange, deleteExerciseEntryAction } from "@/lib/actions/exercise";
+import { getExerciseEntriesInRange } from "@/lib/actions/exercise";
 import {
   dayRange,
   isValidDayKey,
@@ -176,27 +175,7 @@ export default async function TodayPage({
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-muted-foreground">Exercise</h2>
-            {exerciseEntries.length === 0 ? (
-              <EmptyState text="No activity logged yet." />
-            ) : (
-              <ul className="space-y-1.5">
-                {exerciseEntries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="flex items-center justify-between gap-2 rounded-xl bg-card px-3 py-2 text-sm shadow-sm ring-1 ring-foreground/5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{entry.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {Math.round(entry.caloriesBurned)} kcal burned
-                        {entry.estimatedByAi ? " · AI estimate" : ""}
-                      </p>
-                    </div>
-                    <DeleteIconButton id={entry.id} action={deleteExerciseEntryAction} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ExerciseEntryList entries={exerciseEntries} emptyText="No activity logged yet." />
           </section>
         </div>
       </div>
@@ -232,11 +211,3 @@ function MacroTile({
   );
 }
 
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-      <PlusCircle className="h-4 w-4" />
-      {text}
-    </div>
-  );
-}

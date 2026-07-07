@@ -5,7 +5,21 @@ import { db } from "@/lib/db";
 import { estimateExerciseCalories } from "@/lib/ai";
 import { getLatestWeightKg } from "@/lib/actions/weight";
 import { cached, invalidate } from "@/lib/query-cache";
+import { muscleGroupForExercise, MUSCLE_GROUPS } from "@/lib/muscle-groups";
+import { daysAgoFromToday } from "@/lib/date";
 import type { ExerciseType } from "@/generated/prisma/client";
+
+function exerciseNameFor(description: string, detailsJson: string | null): string {
+  if (detailsJson) {
+    try {
+      const parsed = JSON.parse(detailsJson) as { exerciseName?: string };
+      if (parsed.exerciseName) return parsed.exerciseName;
+    } catch {
+      // fall through to description
+    }
+  }
+  return description;
+}
 
 export type StrengthSet = { reps: number; weightKg: number };
 
@@ -60,7 +74,7 @@ export async function logExerciseAction(input: LogExerciseInput) {
   revalidatePath("/");
   revalidatePath("/exercise");
   revalidatePath("/trends");
-  invalidate("exercise:", "summary:");
+  invalidate("exercise:", "summary:", "muscle-recency:");
   return entry;
 }
 
@@ -69,7 +83,7 @@ export async function deleteExerciseEntryAction(id: string) {
   revalidatePath("/");
   revalidatePath("/exercise");
   revalidatePath("/trends");
-  invalidate("exercise:", "summary:");
+  invalidate("exercise:", "summary:", "muscle-recency:");
 }
 
 export async function getExerciseEntriesInRange(gte: Date, lte: Date) {
@@ -80,4 +94,111 @@ export async function getExerciseEntriesInRange(gte: Date, lte: Date) {
       orderBy: { loggedAt: "desc" },
     }),
   );
+}
+
+export type MuscleRecency = { muscle: string; lastTrainedAt: Date | null; daysAgo: number | null };
+
+// Maps each of the 6-day split's muscle groups to when it was last trained,
+// by matching logged strength exercise names back to the workout plan.
+// Only exercises logged with a name matching the plan (via the Plan page,
+// or typed to match exactly) can be attributed to a muscle group.
+export async function getMuscleGroupRecencyAction(): Promise<MuscleRecency[]> {
+  const key = "muscle-recency:all";
+  return cached(
+    key,
+    async () => {
+      const entries = await db.exerciseEntry.findMany({
+        where: { type: "STRENGTH" },
+        orderBy: { loggedAt: "desc" },
+        take: 300,
+        select: { description: true, detailsJson: true, loggedAt: true },
+      });
+
+      const lastByMuscle = new Map<string, Date>();
+      for (const entry of entries) {
+        const name = exerciseNameFor(entry.description, entry.detailsJson);
+        const muscle = muscleGroupForExercise(name);
+        if (!muscle || lastByMuscle.has(muscle)) continue;
+        lastByMuscle.set(muscle, entry.loggedAt);
+      }
+
+      return MUSCLE_GROUPS.map((muscle) => {
+        const lastTrainedAt = lastByMuscle.get(muscle) ?? null;
+        return {
+          muscle,
+          lastTrainedAt,
+          daysAgo: lastTrainedAt ? daysAgoFromToday(lastTrainedAt) : null,
+        };
+      });
+    },
+    60_000,
+  );
+}
+
+export async function getLoggedStrengthExerciseNamesAction(): Promise<string[]> {
+  const key = "exercise:strength-names";
+  return cached(key, async () => {
+    const entries = await db.exerciseEntry.findMany({
+      where: { type: "STRENGTH" },
+      orderBy: { loggedAt: "desc" },
+      select: { description: true, detailsJson: true },
+      take: 500,
+    });
+
+    const seen = new Map<string, string>();
+    for (const entry of entries) {
+      const name = exerciseNameFor(entry.description, entry.detailsJson).trim();
+      const key = name.toLowerCase();
+      if (!seen.has(key)) seen.set(key, name);
+    }
+    return Array.from(seen.values());
+  });
+}
+
+export type ExerciseProgressPoint = {
+  loggedAt: string;
+  sets: StrengthSet[];
+  maxWeightKg: number;
+  totalReps: number;
+  totalVolume: number;
+};
+
+export async function getExerciseProgressAction(
+  exerciseName: string,
+): Promise<ExerciseProgressPoint[]> {
+  const key = `exercise:progress:${exerciseName.toLowerCase()}`;
+  return cached(key, async () => {
+    const entries = await db.exerciseEntry.findMany({
+      where: { type: "STRENGTH" },
+      orderBy: { loggedAt: "asc" },
+      select: { description: true, detailsJson: true, loggedAt: true },
+    });
+
+    const target = exerciseName.trim().toLowerCase();
+    const points: ExerciseProgressPoint[] = [];
+
+    for (const entry of entries) {
+      const name = exerciseNameFor(entry.description, entry.detailsJson);
+      if (name.trim().toLowerCase() !== target || !entry.detailsJson) continue;
+
+      let sets: StrengthSet[] = [];
+      try {
+        const parsed = JSON.parse(entry.detailsJson) as { sets?: StrengthSet[] };
+        sets = parsed.sets ?? [];
+      } catch {
+        continue;
+      }
+      if (sets.length === 0) continue;
+
+      points.push({
+        loggedAt: entry.loggedAt.toISOString(),
+        sets,
+        maxWeightKg: Math.max(...sets.map((s) => s.weightKg)),
+        totalReps: sets.reduce((sum, s) => sum + s.reps, 0),
+        totalVolume: sets.reduce((sum, s) => sum + s.reps * s.weightKg, 0),
+      });
+    }
+
+    return points;
+  });
 }
