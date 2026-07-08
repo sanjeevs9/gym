@@ -44,6 +44,21 @@ model Meal {
   createdAt DateTime    @default(now())
 }
 
+// A reusable product profile (e.g. a specific brand of skim milk) storing
+// macros per 100 base units, so adding it to a meal at any quantity just
+// multiplies by quantity/100 instead of asking the AI to estimate it.
+model SavedIngredient {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  baseUnit  String // "g" or "ml" - what the per-100 values below are relative to
+  calories  Float
+  protein   Float
+  carbs     Float
+  fat       Float
+  fiber     Float
+  createdAt DateTime @default(now())
+}
+
 // One ingredient line inside a saved Meal template.
 model MealItem {
   id          String @id @default(cuid())
