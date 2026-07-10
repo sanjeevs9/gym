@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { shiftDayKey, todayKey, parseDayKey, relativeDayLabel, formatInAppTz } from "@/lib/date";
 
 export function DateNav({ date, basePath }: { date: string; basePath: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const today = todayKey();
   const isCurrentToday = date === today;
   const selected = parseDayKey(date);
@@ -14,7 +15,14 @@ export function DateNav({ date, basePath }: { date: string; basePath: string }) 
   const showFullDate = label !== "Today" && label !== "Yesterday";
 
   function go(newDate: string) {
-    router.push(newDate === today ? basePath : `${basePath}?date=${newDate}`);
+    const params = new URLSearchParams(searchParams);
+    if (newDate === today) {
+      params.delete("date");
+    } else {
+      params.set("date", newDate);
+    }
+    const query = params.toString();
+    router.push(query ? `${basePath}?${query}` : basePath);
   }
 
   return (

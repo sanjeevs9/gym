@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Plus, Trash2, Dumbbell } from "lucide-react";
 import { ExercisePhotoLoop } from "@/components/exercise-photo-loop";
 import {
@@ -19,13 +20,16 @@ export function PlanExerciseRow({
   name,
   equipment,
   images,
+  targetSets,
 }: {
   name: string;
   equipment: string | null;
   images: [string, string];
+  targetSets?: string;
 }) {
   const isBodyweight = equipment?.toLowerCase() === "body only";
   const [open, setOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const [sets, setSets] = useState<StrengthSet[]>([{ reps: 10, weightKg: isBodyweight ? 0 : 20 }]);
   const [saving, startSaving] = useTransition();
   const dateKey = useSelectedDateKey();
@@ -59,16 +63,38 @@ export function PlanExerciseRow({
   return (
     <li className="rounded-lg border border-border bg-card p-2.5">
       <div className="flex items-center gap-3">
-        <ExercisePhotoLoop images={images} alt={name} />
+        <button
+          type="button"
+          onClick={() => setPhotoOpen(true)}
+          className="shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          aria-label={`View ${name} full size`}
+        >
+          <ExercisePhotoLoop images={images} alt={name} />
+        </button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{name}</p>
-          {equipment && <p className="text-xs text-muted-foreground capitalize">{equipment}</p>}
+          {(equipment || targetSets) && (
+            <p className="text-xs text-muted-foreground capitalize">
+              {equipment}
+              {equipment && targetSets && " · "}
+              {targetSets && <span className="normal-case">{targetSets}</span>}
+            </p>
+          )}
         </div>
         <Button variant={open ? "secondary" : "outline"} size="sm" onClick={() => setOpen((o) => !o)}>
           <Dumbbell className="h-3.5 w-3.5" />
           Log
         </Button>
       </div>
+
+      <Dialog open={photoOpen} onOpenChange={setPhotoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{name}</DialogTitle>
+          </DialogHeader>
+          <ExercisePhotoLoop images={images} alt={name} className="mx-auto h-72 w-72 sm:h-80 sm:w-80" />
+        </DialogContent>
+      </Dialog>
 
       {open && (
         <div className="mt-3 space-y-2 border-t border-border pt-3">

@@ -1,11 +1,18 @@
-import { WORKOUT_PLAN } from "@/lib/workout-plan";
+import { WORKOUT_PLANS } from "@/lib/workout-plan";
 
-export const MUSCLE_GROUPS = WORKOUT_PLAN.map((day) => day.muscle);
+// Fixed to match exactly what the body diagram (components/body-diagram.tsx)
+// knows how to render — not derived from plan data, since plans may have
+// day/exercise labels (e.g. "Push", "Pull") that aren't muscle groups.
+export const MUSCLE_GROUPS = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs"];
 
 const EXERCISE_TO_MUSCLE = new Map<string, string>();
-for (const day of WORKOUT_PLAN) {
-  for (const exercise of day.exercises) {
-    EXERCISE_TO_MUSCLE.set(exercise.name.toLowerCase(), day.muscle);
+for (const plan of WORKOUT_PLANS) {
+  for (const day of plan.days) {
+    for (const exercise of day.exercises) {
+      const muscle = exercise.muscle ?? day.muscle;
+      if (!muscle) continue;
+      EXERCISE_TO_MUSCLE.set(exercise.name.toLowerCase(), muscle);
+    }
   }
 }
 
