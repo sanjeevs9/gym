@@ -13,14 +13,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
-import { logFoodAction } from "@/lib/actions/food";
+import { Loader2, Sparkles } from "lucide-react";
+import { logFoodAction, previewFoodNutritionAction } from "@/lib/actions/food";
 import { useQuickAddClose } from "@/components/quick-add-dialog";
 import { useSelectedDateKey } from "@/components/selected-date-context";
 import { combineDayKeyWithNow, todayKey } from "@/lib/date";
 import { MealPicker } from "@/components/forms/meal-picker";
 
 const UNITS = ["g", "ml", "oz", "cup", "tbsp", "tsp", "piece", "serving"];
+const parseOptional = (v: string) => (v.trim() === "" ? undefined : parseFloat(v));
 
 export function FoodLogForm() {
   return (
@@ -43,7 +44,7 @@ function CustomFoodTab() {
   const closeDialog = useQuickAddClose();
   const dateKey = useSelectedDateKey();
   const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState("100");
+  const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("g");
   const [calories, setCalories] = useState("");
   const [protein, setProtein] = useState("");
@@ -51,25 +52,70 @@ function CustomFoodTab() {
   const [fat, setFat] = useState("");
   const [fiber, setFiber] = useState("");
   const [saving, startSaving] = useTransition();
+  const [estimating, startEstimating] = useTransition();
+
+  function currentQty() {
+    // Quantity is optional — leaving it blank means the amount is already in
+    // the description (e.g. "75g paneer bhurji"), so the server parses both
+    // the quantity/unit and the macros out of that free text in one AI call.
+    return quantity.trim() === "" ? undefined : parseFloat(quantity);
+  }
+
+  function handleEstimate() {
+    if (!description.trim()) {
+      toast.error("Describe what you ate first");
+      return;
+    }
+    const qty = currentQty();
+    if (quantity.trim() !== "" && (!qty || qty <= 0)) {
+      toast.error("Enter a valid quantity, or leave it blank and describe the amount above");
+      return;
+    }
+
+    startEstimating(async () => {
+      try {
+        const preview = await previewFoodNutritionAction({
+          description,
+          quantity: qty,
+          unit: qty ? unit : undefined,
+          calories: parseOptional(calories),
+          protein: parseOptional(protein),
+          carbs: parseOptional(carbs),
+          fat: parseOptional(fat),
+          fiber: parseOptional(fiber),
+        });
+        setDescription(preview.description);
+        setQuantity(String(preview.quantity));
+        setUnit(preview.unit);
+        setCalories(String(preview.calories));
+        setProtein(String(preview.protein));
+        setCarbs(String(preview.carbs));
+        setFat(String(preview.fat));
+        setFiber(String(preview.fiber));
+        toast.success("Estimated — review the numbers below, then Log it");
+      } catch {
+        toast.error("Couldn't estimate that");
+      }
+    });
+  }
 
   function handleLog() {
     if (!description.trim()) {
       toast.error("Describe what you ate first");
       return;
     }
-    const qty = parseFloat(quantity);
-    if (!qty || qty <= 0) {
-      toast.error("Enter a valid quantity");
+    const qty = currentQty();
+    if (quantity.trim() !== "" && (!qty || qty <= 0)) {
+      toast.error("Enter a valid quantity, or leave it blank and describe the amount above");
       return;
     }
-    const parseOptional = (v: string) => (v.trim() === "" ? undefined : parseFloat(v));
 
     startSaving(async () => {
       try {
         const result = await logFoodAction({
           description,
           quantity: qty,
-          unit,
+          unit: qty ? unit : undefined,
           calories: parseOptional(calories),
           protein: parseOptional(protein),
           carbs: parseOptional(carbs),
@@ -78,12 +124,12 @@ function CustomFoodTab() {
           loggedAt: dateKey === todayKey() ? undefined : combineDayKeyWithNow(dateKey),
         });
         toast.success(
-          `Logged ${description} — ${Math.round(result.calories)} kcal${
+          `Logged ${result.description} — ${Math.round(result.calories)} kcal${
             result.aiEstimated ? " (AI-estimated)" : ""
           }`,
         );
         setDescription("");
-        setQuantity("100");
+        setQuantity("");
         setCalories("");
         setProtein("");
         setCarbs("");
@@ -102,10 +148,13 @@ function CustomFoodTab() {
         <Label htmlFor="food-description">What did you eat?</Label>
         <Input
           id="food-description"
-          placeholder="e.g. apple, boiled egg, chicken breast"
+          placeholder="e.g. apple, 75g paneer bhurji, 2 idlis with sambar"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+        <p className="text-[11px] text-muted-foreground">
+          Quantity below is optional — you can describe the amount here instead.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -116,6 +165,7 @@ function CustomFoodTab() {
             type="number"
             min="0"
             step="any"
+            placeholder="Optional"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
           />
@@ -151,10 +201,25 @@ function CustomFoodTab() {
         </div>
       </div>
 
-      <Button onClick={handleLog} disabled={saving} className="w-full">
-        {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-        Log it
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          onClick={handleEstimate}
+          disabled={estimating || saving}
+          className="shrink-0"
+        >
+          {estimating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          Estimate
+        </Button>
+        <Button onClick={handleLog} disabled={saving || estimating} className="flex-1">
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Log it
+        </Button>
+      </div>
     </div>
   );
 }
