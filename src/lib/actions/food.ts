@@ -95,6 +95,46 @@ export async function logFoodAction(input: LogFoodInput): Promise<LogFoodResult>
   return { ...entry, aiEstimated: nutrition.aiEstimated };
 }
 
+export type UpdateFoodEntryInput = {
+  description: string;
+  quantity: number;
+  unit: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+};
+
+// Updates one logged FoodEntry row in place. Deliberately never touches
+// Meal/MealItem — even for an entry logged from a saved meal (mealId set),
+// this only edits that day's snapshot (e.g. "just 40g of mango today"), so
+// the reusable meal template and every other day it was logged stay intact.
+export async function updateFoodEntryAction(id: string, input: UpdateFoodEntryInput) {
+  if (!input.description.trim()) throw new Error("Description is required");
+  if (!input.quantity || input.quantity <= 0) throw new Error("Quantity must be greater than 0");
+
+  const nutrition = await resolveNutrition(input);
+
+  await db.foodEntry.update({
+    where: { id },
+    data: {
+      description: input.description,
+      quantity: input.quantity,
+      unit: input.unit,
+      calories: nutrition.calories,
+      protein: nutrition.protein,
+      carbs: nutrition.carbs,
+      fat: nutrition.fat,
+      fiber: nutrition.fiber,
+    },
+  });
+  revalidatePath("/");
+  revalidatePath("/food");
+  revalidatePath("/trends");
+  invalidate("food:", "summary:");
+}
+
 export async function deleteFoodEntryAction(id: string) {
   await db.foodEntry.delete({ where: { id } });
   revalidatePath("/");

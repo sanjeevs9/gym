@@ -20,6 +20,10 @@ export type FoodListRow =
       ids: string[];
       mealName: string;
       ingredients: string[];
+      // Raw per-ingredient entries (own quantity/unit/macros), kept alongside
+      // the aggregate fields below so editing can target one ingredient's
+      // logged snapshot without touching the others.
+      items: FoodEntryWithMeal[];
       loggedAt: Date;
       calories: number;
       protein: number;
@@ -50,6 +54,7 @@ export function groupFoodEntries(entries: FoodEntryWithMeal[]): FoodListRow[] {
         ids: [entry.id],
         mealName: entry.meal?.name ?? "Meal",
         ingredients: [entry.description],
+        items: [entry],
         loggedAt: entry.loggedAt,
         calories: entry.calories,
         protein: entry.protein,
@@ -64,6 +69,7 @@ export function groupFoodEntries(entries: FoodEntryWithMeal[]): FoodListRow[] {
     if (group.type !== "meal") continue;
     group.ids.push(entry.id);
     group.ingredients.push(entry.description);
+    group.items.push(entry);
     group.calories += entry.calories;
     group.protein += entry.protein;
     group.carbs += entry.carbs;

@@ -1,5 +1,6 @@
 import { PlusCircle } from "lucide-react";
 import { DeleteIconButton } from "@/components/delete-icon-button";
+import { EditFoodEntryDialog } from "@/components/forms/edit-food-entry-dialog";
 import { deleteFoodEntryAction, deleteFoodEntryGroupAction } from "@/lib/actions/food";
 import { groupFoodEntries, type FoodListRow } from "@/lib/group-food-entries";
 import type { getFoodEntriesInRange } from "@/lib/actions/food";
@@ -60,7 +61,10 @@ function FoodEntryRow({ row, showFullMacros }: { row: FoodListRow; showFullMacro
           <p className="truncate text-xs text-muted-foreground">{row.ingredients.join(", ")}</p>
           <p className="text-xs text-muted-foreground">{macroLine(row, showFullMacros)}</p>
         </div>
-        <DeleteIconButton id={row.ids} action={deleteFoodEntryGroupAction} />
+        <div className="flex shrink-0 items-center gap-0.5">
+          <EditFoodEntryDialog entries={row.items} title={`Edit ${row.mealName}`} />
+          <DeleteIconButton id={row.ids} action={deleteFoodEntryGroupAction} />
+        </div>
       </li>
     );
   }
@@ -75,7 +79,10 @@ function FoodEntryRow({ row, showFullMacros }: { row: FoodListRow; showFullMacro
           {entry.unit} · {macroLine(entry, showFullMacros)}
         </p>
       </div>
-      <DeleteIconButton id={entry.id} action={deleteFoodEntryAction} />
+      <div className="flex shrink-0 items-center gap-0.5">
+        <EditFoodEntryDialog entries={[entry]} title={`Edit ${entry.description}`} />
+        <DeleteIconButton id={entry.id} action={deleteFoodEntryAction} />
+      </div>
     </li>
   );
 }
